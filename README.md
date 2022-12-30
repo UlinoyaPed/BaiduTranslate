@@ -10,39 +10,31 @@ go install github.com/UlinoyaPed/BaiduTranslate
 
 ## 使用
 
-BaiduInfo结构体记录配置项,Salt为数据传送时加盐(库中已有函数实现,可直接调用),From项为翻译源语言(auto自动识别),To项为译文语言
-
-```golang
+```go
 package main
 
 import (
 	"fmt"
+
 	"github.com/UlinoyaPed/BaiduTranslate"
 )
 
 func main() {
-	bi := BaiduTranslate.BaiduInfo{AppID:"XXXXX",Salt:BaiduTranslate.Salt(5),SecretKey:"XXXXX",From:"auto",To:"en"}
-	
-	bi.Text = "你好,世界"
-	fmt.Println(bi.Translate())
-/*
-		bi.To = "wyw"	//文言文
-    	fmt.Println(bi.Translate())
-    	bi.To = "jp"	//日本语
-    	fmt.Println(bi.Translate())
-    	bi.To = "kor"	//韩语
-    	fmt.Println(bi.Translate())
-    	bi.To = "fra"	//法语
-    	fmt.Println(bi.Translate())
-    	bi.To = "de"	//德语
-    	fmt.Println(bi.Translate())
-    	bi.To = "ru"	//俄语
-    	fmt.Println(bi.Translate())
-*/
+	//输入基本信息，Salt长度无要求
+    // BaiduInfo结构体记录配置项，Salt为数据传送时加盐（库中已有函数实现，可直接调用）
+	btr := BaiduTranslate.BaiduInfo{AppID: "", Salt: BaiduTranslate.Salt(5), SecretKey: ""}
+
+	// 通用翻译
+	// 传入：(原文, 原文语言, 译文语言)
+	fmt.Println(btr.NormalTr("Hello world!", "en", "zh"))
+	fmt.Println(btr.NormalTr("百度翻译", "auto", "de"))
 }
+
 ```
 
-受支持的翻译语言(源语言语种不确定时可设置为 auto，目标语言语种不可设置为 auto)
+## 受支持的翻译语言
+
+ **(源语言语种不确定时可设置为 auto，目标语言语种不可设置为 auto)**
 
 | 语言简写 |     名称     |
 | :------: | :----------: |
