@@ -20,13 +20,13 @@ import (
 )
 
 func main() {
-	//输入基本信息，Salt长度无要求
+	// 输入基本信息，Salt长度无要求
     // BaiduInfo结构体记录配置项，Salt为数据传送时加盐（库中已有函数实现，可直接调用）
-	btr := BaiduTranslate.BaiduInfo{AppID: "", Salt: BaiduTranslate.Salt(5), SecretKey: ""}
+	btr := BaiduTranslate.BaiduInfo{AppID: "XXX", Salt: BaiduTranslate.Salt(5), SecretKey: "X"}
 
 	// 通用翻译
 	// 传入：(原文, 原文语言, 译文语言)
-	fmt.Println(btr.NormalTr("Hello world!", "en", "zh"))
+	fmt.Println(btr.NormalTr("Hello world!", "en", "zh"))// 使用了url encode，可以正常翻译空格等特殊字符
 	fmt.Println(btr.NormalTr("百度翻译", "auto", "de"))
 }
 
