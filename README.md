@@ -5,10 +5,12 @@
 ## 安装
 
 ```bash
-go install github.com/UlinoyaPed/BaiduTranslate
+go get github.com/UlinoyaPed/BaiduTranslate@master
 ```
 
 ## 使用
+
+### 通用翻译
 
 ```go
 package main
@@ -20,16 +22,92 @@ import (
 )
 
 func main() {
-	// 输入基本信息，Salt长度无要求
-    // BaiduInfo结构体记录配置项，Salt为数据传送时加盐（库中已有函数实现，可直接调用）
-	btr := BaiduTranslate.BaiduInfo{AppID: "XXX", Salt: BaiduTranslate.Salt(5), SecretKey: "X"}
+	// 输入基本信息，BaiduInfo结构体记录配置项
+	btr := BaiduTranslate.BaiduInfo{AppID: "XXX", SecretKey: "XXX"}
 
-	// 通用翻译
 	// 传入：(原文, 原文语言, 译文语言)
-	fmt.Println(btr.NormalTr("Hello world!", "en", "zh"))// 使用了url encode，可以正常翻译空格等特殊字符
-	fmt.Println(btr.NormalTr("百度翻译", "auto", "de"))
+	// 完整实例
+	s1, err := btr.NormalTr("Hello world!", "en", "zh") // 对原文进行了url encode，原文可带空格
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Println(s1)
+	}
+
+	// 忽略错误
+	s2, _ := btr.NormalTr("百度翻译", "auto", "de")
+	fmt.Printf("%s\n", s2)
+
+	fmt.Println("---以下为错误示范---")
+	// 语言不能带空格，否则会报错！
+	// w1, err := btr.NormalTr("百度翻译", " zh", "en")
+	// fmt.Println(err.Error(), w1)
+
+	// 无"fr"语言（法语为"fra"）
+	w2, err := btr.NormalTr("百度翻译", "auto", "fr")
+	fmt.Println(err.Error(), w2)
+
+	// 不能缺少参数
+	w3, err := btr.NormalTr("百度翻译", "", "en")
+	fmt.Println(err.Error(), w3)
 }
 
+```
+
+**输出**
+
+```go
+你好，世界！
+Baidu Übersetzen
+---以下为错误示范---
+错误码：58001，错误信息：INVALID_TO_PARAM 
+错误码：54000，错误信息：PARAM_FROM_TO_OR_Q_EMPTY 
+```
+
+### 语种检测
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/UlinoyaPed/BaiduTranslate"
+)
+
+func main() {
+	// 输入基本信息，BaiduInfo结构体记录配置项
+	btr := BaiduTranslate.BaiduInfo{AppID: "XXX", SecretKey: "XXX"}
+
+	// 完整实例
+	s1, err := btr.Detect("百度翻译")
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Println(s1)
+	}
+
+	// 忽略错误
+	s2, _ := btr.Detect("Hello World!")
+	fmt.Println(s2)
+
+	fmt.Println("---以下为错误示范---")
+	
+	//不能缺少参数
+	w1, err := btr.Detect("")
+	fmt.Println(err.Error(), w1)
+
+}
+
+```
+
+**输出**
+
+```go
+zh
+en
+---以下为错误示范---
+错误码：54000，错误信息：PARAM_FROM_TO_OR_Q_EMPTY
 ```
 
 ## 受支持的翻译语言

@@ -1,7 +1,6 @@
 package BaiduTranslate
 
 import (
-	"log"
 	"math/rand"
 	"time"
 )
@@ -9,7 +8,6 @@ import (
 // 百度翻译开放平台信息
 type BaiduInfo struct {
 	AppID     string
-	Salt      string
 	SecretKey string
 }
 
@@ -24,12 +22,4 @@ func Salt(l int) string {
 		result = append(result, bytes[r.Intn(len(bytes))])
 	}
 	return string(result)
-}
-
-// 错误检测，如果有错误输出msg
-func checkErr(e error, msg string) {
-	if e != nil {
-		log.Println(msg)
-	}
-	return
 }
