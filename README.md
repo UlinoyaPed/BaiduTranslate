@@ -5,7 +5,7 @@
 ## 安装
 
 ```bash
-go get github.com/UlinoyaPed/BaiduTranslate@master
+go get github.com/UlinoyaPed/BaiduTranslate@l
 ```
 
 ## 使用
