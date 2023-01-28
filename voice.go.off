@@ -1,0 +1,122 @@
+package BaiduTranslate
+
+import (
+	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/tidwall/gjson"
+)
+
+type VoiceResult struct {
+	Source     string
+	Target     string
+	Target_tts string
+	TtsFile    []byte
+
+	errCode int64
+	errMsg  string
+}
+
+func HmacSha256(message string, secret string) string {
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(message))
+	result := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return result
+}
+
+func (BaiduInfo *BaiduInfo) VoiceTr(FilePath string, From string, To string) VoiceResult {
+	/*
+		type TransResult struct {
+			Result struct {
+				Source     string `json:"source"`
+				Target     string `json:"target"`
+				Target_tts string `json:"target_tts"`
+			} `json:"data"`
+			ErrorCode int    `json:"code"`
+			ErrorMsg  string `json:"msg"`
+		}
+	*/
+
+	// 读取音频文件并转化为base64编码
+	dat, err := ioutil.ReadFile(FilePath)
+	if err != nil {
+		log.Println("读取文件错误：" + err.Error())
+	}
+	sEnc := base64.StdEncoding.EncodeToString(dat)
+
+	// 准备post所需信息并计算sign
+	appid := BaiduInfo.AppID
+	timestamp := time.Now().Unix()
+	msg := fmt.Sprintf("%s%d%s", appid, timestamp, sEnc)
+	sign := HmacSha256(msg, BaiduInfo.SecretKey)
+
+	// HTTP POST
+	info := make(map[string]interface{})
+	info["from"] = From
+	info["to"] = To
+	info["voice"] = sEnc
+	info["format"] = "pcm"
+	bytesData, _ := json.Marshal(info)
+	reader := bytes.NewReader(bytesData)
+
+	req, err := http.NewRequest("POST", "https://fanyi-api.baidu.com/api/trans/v2/voicetrans", reader)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("X-Appid", appid)
+	req.Header.Add("X-Timestamp", fmt.Sprintf("%d", timestamp))
+	req.Header.Add("X-Sign", sign)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	// json解析
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	bodyJson := string(body)
+	var res VoiceResult
+
+	res.errCode = gjson.Get(bodyJson, "code").Int()
+	res.errMsg = gjson.Get(bodyJson, "msg").String()
+	if res.errCode == 0 {
+		res.Source = gjson.Get(bodyJson, "data.source").String()
+		res.Target = gjson.Get(bodyJson, "data.target").String()
+		res.Target_tts = gjson.Get(bodyJson, "data.target_tts").String()
+	}
+
+	return res
+
+}
+
+func (j VoiceResult) Err() error {
+	if j.errCode != 0 {
+		err := errors.New("语音翻译错误，错误码：" + fmt.Sprintf("%d", j.errCode) + "，错误信息：" + j.errMsg)
+		return err
+	} else {
+		return nil
+	}
+}
+
+/*
+	if errorCode != 0 {
+		err := errors.New("错误码：" + fmt.Sprintf("%d", errorCode) + "，错误信息：" + errorMsg)
+		return sign, string(body), fmt.Sprintf("%v", resp), err
+	} else {
+		return source, target, target_tts, nil
+	}
+*/

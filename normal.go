@@ -3,26 +3,23 @@ package BaiduTranslate
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/tidwall/gjson"
 )
 
-func (BaiduInfo *BaiduInfo) NormalTr(Text string, From string, To string) (string, error) {
+type NormalResult struct {
+	Dst string
 
-	type TransResult struct {
-		From   string `json:"from"`
-		To     string `json:"to"`
-		Result [1]struct {
-			Src string `json:"src"`
-			Dst string `json:"dst"`
-		} `json:"trans_result"`
-		ErrorCode string `json:"error_code"`
-		ErrorMsg  string `json:"error_msg"`
-	}
+	errCode string
+	errMsg  string
+}
+
+func (BaiduInfo *BaiduInfo) NormalTr(Text string, From string, To string) NormalResult {
 
 	//合并字符串，计算sign
 	salt := Salt(10)
@@ -31,7 +28,7 @@ func (BaiduInfo *BaiduInfo) NormalTr(Text string, From string, To string) (strin
 	ctx.Write([]byte(montage))
 	sign := hex.EncodeToString(ctx.Sum(nil))
 
-	// 翻译 传入需要翻译的语句
+	// 传入需要翻译的语句
 	urlstr := "http://fanyi-api.baidu.com/api/trans/vip/translate?q=" + url.QueryEscape(Text) + "&from=" + From + "&to=" + To + "&appid=" + BaiduInfo.AppID + "&salt=" + salt + "&sign=" + sign
 
 	// 发送GET请求
@@ -42,12 +39,36 @@ func (BaiduInfo *BaiduInfo) NormalTr(Text string, From string, To string) (strin
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	var ts TransResult
-	_ = json.Unmarshal(body, &ts)
-	if ts.ErrorCode != "" {
-		err := errors.New("错误码：" + ts.ErrorCode + "，错误信息：" + ts.ErrorMsg)
-		return "", err
+	bodyJson := string(body)
+	var res NormalResult
+	res.errCode = gjson.Get(bodyJson, "error_code").String()
+	res.errMsg = gjson.Get(bodyJson, "error_msg").String()
+	if res.errCode == "" {
+		trans := gjson.Get(bodyJson, "trans_result").Array()[0]
+		res.Dst = trans.Get("dst").String()
+	}
+	return res
+}
+
+func (j NormalResult) Err() error {
+	if j.errCode != "" {
+		err := errors.New("通用翻译错误，错误码：" + j.errCode + "，错误信息：" + j.errMsg)
+		return err
 	} else {
-		return ts.Result[0].Dst, nil
+		return nil
 	}
 }
+
+/*
+// json解析
+	trans := gjson.Get(string(body), "trans_result").Array()[0]
+	result := trans.Get("dst").String()
+	errorCode := gjson.Get(string(body), "error_code").String()
+	errorMsg := gjson.Get(string(body), "error_msg").String()
+	if errorCode != "" {
+		err := errors.New("错误码：" + errorCode + "，错误信息：" + errorMsg)
+		return "", err
+	} else {
+		return result, nil
+	}
+*/

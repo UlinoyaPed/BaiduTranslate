@@ -3,23 +3,23 @@ package BaiduTranslate
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/tidwall/gjson"
 )
 
-func (BaiduInfo *BaiduInfo) Detect(Text string) (string, error) {
+type DetectResult struct {
+	Lang string
 
-	type DetectResult struct {
-		Data struct {
-			Src string `json:"src"`
-		} `json:"data"`
-		ErrorCode string `json:"error_code"`
-		ErrorMsg  string `json:"error_msg"`
-	}
+	errCode string
+	errMsg  string
+}
+
+func (BaiduInfo *BaiduInfo) Detect(Text string) DetectResult {
 
 	//合并字符串，计算sign
 	salt := Salt(10)
@@ -36,16 +36,37 @@ func (BaiduInfo *BaiduInfo) Detect(Text string) (string, error) {
 	if err != nil {
 		log.Println("HTTP GET出现错误！")
 	}
+
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	var ts DetectResult
-	_ = json.Unmarshal(body, &ts)
+	// json解析
+	bodyJson := string(body)
+	var res DetectResult
+	res.errCode = gjson.Get(bodyJson, "error_code").String()
+	res.errMsg = gjson.Get(bodyJson, "error_msg").String()
+	if res.errCode == "0" {
+		res.Lang = gjson.Get(bodyJson, "data.src").String()
+	}
 
-	if ts.ErrorCode != "" {
-		err := errors.New("错误码：" + ts.ErrorCode + "，错误信息：" + ts.ErrorMsg)
-		return "", err
+	return res
+
+}
+
+func (j DetectResult) Err() error {
+	if j.errCode != "0" {
+		err := errors.New("语种识别错误，错误码：" + j.errCode + "，错误信息：" + j.errMsg)
+		return err
 	} else {
-		return ts.Data.Src, nil
+		return nil
 	}
 }
+
+/*
+if errorCode != "0" {
+		err := errors.New("错误码：" + errorCode + "，错误信息：" + errorMsg)
+		return "", err
+	} else {
+		return result, nil
+	}
+*/

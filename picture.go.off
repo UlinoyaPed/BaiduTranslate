@@ -1,0 +1,119 @@
+package BaiduTranslate
+
+import (
+	"bytes"
+	"crypto/md5"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"mime/multipart"
+	"net/http"
+	"net/url"
+	"os"
+
+	"github.com/tidwall/gjson"
+)
+
+func MD5(str string) string {
+	data := []byte(str)
+	has := md5.Sum(data)
+	md5str := fmt.Sprintf("%x", has)
+	return md5str
+}
+
+func (BaiduInfo *BaiduInfo) PictureTr(FilePath string, From string, To string, paste int) (string, string, string, []byte, error) {
+
+	// 读取图片文件
+	dat, err := os.Open(FilePath)
+	if err != nil {
+		log.Println("读取文件错误：" + err.Error())
+	}
+
+	// 准备post所需信息并计算sign
+	salt := Salt(10)
+	cuid := "APICUID"
+	mac := "mac"
+	appid := BaiduInfo.AppID
+	secretkey := BaiduInfo.SecretKey
+	montage := appid + fmt.Sprintf("%x", md5.Sum(dat)) + salt + cuid + mac + secretkey
+	sign := MD5(montage)
+
+	// HTTP POST
+	/*
+		info := make(map[string]interface{})
+		info["image"] = dat
+		info["from"] = From
+		info["to"] = To
+		info["appid"] = appid
+		info["salt"] = salt
+		info["sign"] = sign
+		info["cuid"] = cuid
+		info["mac"] = mac
+		info["paste"] = "1"
+		info["version"] = "3"
+	*/
+
+	defer dat.Close()
+	bodyBuffer := &bytes.Buffer{}
+	writer := multipart.NewWriter(bodyBuffer)
+	part, _ := writer.CreateFormFile("image", FilePath)
+	io.Copy(part, dat)
+
+	form := url.Values{
+		"image":   {string(dat)},
+		"from":    {From},
+		"to":      {To},
+		"appid":   {appid},
+		"salt":    {salt},
+		"sign":    {sign},
+		"cuid":    {cuid},
+		"mac":     {mac},
+		"paste":   {"1"},
+		"version": {"3"},
+	}
+	reader := bytes.NewBufferString(form.Encode())
+
+	req, err := http.NewRequest("POST", "https://fanyi-api.baidu.com/api/trans/sdk/picure", reader)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	req.Header.Add("Content-Type", "multipart/form-data")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	// json解析
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	errorCode := gjson.Get(string(body), "error_code").String()
+	errorMsg := gjson.Get(string(body), "error_msg").String()
+	sumSrc := gjson.Get(string(body), "data.sumSrc").String()
+	sumDst := gjson.Get(string(body), "data.sumDst").String()
+
+	var imgByte []byte
+	var pasteImg string
+	if paste == 1 {
+		pasteImg := gjson.Get(string(body), "data.pasteImg").String()
+		imgByte, err = base64.StdEncoding.DecodeString(pasteImg)
+		if err != nil {
+			log.Println(err.Error())
+		}
+	} else {
+		pasteImg = ""
+	}
+
+	if errorCode != "0" {
+		err := errors.New("错误码：" + errorCode + "，错误信息：" + errorMsg)
+		return sign, string(body), fmt.Sprintf("%v", form), imgByte, err
+	} else {
+		return sumSrc, sumDst, pasteImg, imgByte, nil
+	}
+}

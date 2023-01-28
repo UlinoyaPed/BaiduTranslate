@@ -26,3 +26,4 @@ releases/*
 #other
 *.log
 *.bk
+!*.off
