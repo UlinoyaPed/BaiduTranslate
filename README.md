@@ -50,7 +50,7 @@ func main() {
 	w2 := btr.NormalTr("百度翻译", "auto", "fr")
 	fmt.Println(w2.Err().Error(), w2.Dst)
 
-	// 不能缺少参数
+	// 不能缺少参数,v1.0.2以上不能使用旧版方法
 	w3 := btr.NormalTr("百度翻译", "", "en")
 	fmt.Println(w3.Err().Error(), w3.Dst)
 }
@@ -76,30 +76,35 @@ package main
 import (
 	"fmt"
 
-	"github.com/ulinoyaped/BaiduTranslate"
+	"github.com/UlinoyaPed/BaiduTranslate"
 )
 
 func main() {
 	// 输入基本信息，BaiduInfo结构体记录配置项
 	btr := BaiduTranslate.BaiduInfo{AppID: "XXX", SecretKey: "XXX"}
+	if btr.AppID == "XXX" || btr.SecretKey == "XXX" {
+		fmt.Println("请注意填写BaiduInfo结构体!!!")
+	}
 
 	// 完整实例
-	s1, err := btr.Detect("百度翻译")
-	if err != nil {
-		fmt.Println(err.Error())
+	s1 := btr.Detect("百度翻译")
+	if s1.Err() != nil {
+		fmt.Println(s1.Err().Error())
 	} else {
-		fmt.Println(s1)
+		fmt.Println(s1.Lang)
 	}
 
 	// 忽略错误
-	s2, _ := btr.Detect("Hello World!")
-	fmt.Println(s2)
+	s2 := btr.Detect("Hello World!")
+	fmt.Println(s2.Lang)
 
 	fmt.Println("---以下为错误示范---")
-	
-	//不能缺少参数
-	w1, err := btr.Detect("")
-	fmt.Println(err.Error(), w1)
+
+	//不能缺少参数,v1.0.2以上不能使用旧版方法
+	// w1, err := btr.Detect("")
+	// fmt.Println(err.Error(), w1)
+	w1 := btr.Detect("")
+	fmt.Println(w1.Err().Error(), w1.Lang)
 
 }
 
