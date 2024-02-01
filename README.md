@@ -5,7 +5,7 @@
 ## 安装
 
 ```bash
-go get github.com/UlinoyaPed/BaiduTranslate@v1.0.2
+go get github.com/UlinoyaPed/BaiduTranslate@v1.0.3
 ```
 
 ## 使用
@@ -18,25 +18,28 @@ package main
 import (
 	"fmt"
 
-	"github.com/ulinoyaped/BaiduTranslate"
+	"github.com/UlinoyaPed/BaiduTranslate"
 )
 
 func main() {
 	// 输入基本信息，BaiduInfo结构体记录配置项
 	btr := BaiduTranslate.BaiduInfo{AppID: "XXX", SecretKey: "XXX"}
+	if btr.AppID == "XXX" || btr.SecretKey == "XXX" {
+		fmt.Println("请注意填写BaiduInfo结构体!!!")
+	}
 
 	// 传入：(原文, 原文语言, 译文语言)
 	// 完整实例
-	s1, err := btr.NormalTr("Hello world!", "en", "zh") // 对原文进行了url encode，原文可带空格
-	if err != nil {
-		fmt.Println(err.Error())
+	s1 := btr.NormalTr("Hello world!", "en", "zh") // 对原文进行了url encode，原文可带空格
+	if s1.Err() != nil {
+		fmt.Println(s1.Err().Error())
 	} else {
-		fmt.Println(s1)
+		fmt.Println(s1.Dst)
 	}
 
 	// 忽略错误
-	s2, _ := btr.NormalTr("百度翻译", "auto", "de")
-	fmt.Printf("%s\n", s2)
+	s2 := btr.NormalTr("百度翻译", "auto", "de")
+	fmt.Println(s2.Dst)
 
 	fmt.Println("---以下为错误示范---")
 	// 语言不能带空格，否则会报错！
@@ -44,13 +47,14 @@ func main() {
 	// fmt.Println(err.Error(), w1)
 
 	// 无"fr"语言（法语为"fra"）
-	w2, err := btr.NormalTr("百度翻译", "auto", "fr")
-	fmt.Println(err.Error(), w2)
+	w2 := btr.NormalTr("百度翻译", "auto", "fr")
+	fmt.Println(w2.Err().Error(), w2.Dst)
 
 	// 不能缺少参数
-	w3, err := btr.NormalTr("百度翻译", "", "en")
-	fmt.Println(err.Error(), w3)
+	w3 := btr.NormalTr("百度翻译", "", "en")
+	fmt.Println(w3.Err().Error(), w3.Dst)
 }
+
 
 ```
 

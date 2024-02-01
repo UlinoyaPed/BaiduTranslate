@@ -40,14 +40,14 @@ func (info *BaiduInfo) NormalTr(text, from, to string) NormalResult {
 	req, err := http.NewRequest(method, urlStr, nil)
 	if err != nil {
 		fmt.Println(err)
-		// return
+		return NormalResult{ErrCode: "http.post", ErrMsg: "POST错误"}
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	// 发送请求
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
-		// return
+		return NormalResult{ErrCode: "http.post", ErrMsg: "POST错误"}
 	}
 	defer res.Body.Close()
 
@@ -55,7 +55,7 @@ func (info *BaiduInfo) NormalTr(text, from, to string) NormalResult {
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println(err)
-		// return
+		return NormalResult{ErrCode: "http.read", ErrMsg: "返回信息读取出错"}
 	}
 	//fmt.Println(string(body))
 
