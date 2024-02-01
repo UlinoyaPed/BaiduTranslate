@@ -1,11 +1,11 @@
 # golang的百度在线翻译库
 
-该库用于调用百度翻译API，实现翻译效果。使用前，需要注册 [百度翻译开放平台信息](http://api.fanyi.baidu.com/api/trans/product/index)。
+该库用于调用百度翻译API，实现翻译效果。使用前，需要注册 [百度翻译开放平台信息](https://api.fanyi.baidu.com/api/trans/product/index)。
 
 ## 安装
 
 ```bash
-go get github.com/UlinoyaPed/BaiduTranslate@v1.0.4
+go get -u github.com/UlinoyaPed/BaiduTranslate@v1.0.4
 ```
 
 ## 使用
