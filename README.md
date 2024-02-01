@@ -5,7 +5,7 @@
 ## 安装
 
 ```bash
-go get github.com/UlinoyaPed/BaiduTranslate@v1.0.3
+go get github.com/UlinoyaPed/BaiduTranslate@v1.0.4
 ```
 
 ## 使用
