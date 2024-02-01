@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"translate/BaiduTranslate"
+	"github.com/UlinoyaPed/BaiduTranslate"
 )
 
 func main() {

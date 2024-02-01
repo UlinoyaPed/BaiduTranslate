@@ -5,7 +5,7 @@
 ## 安装
 
 ```bash
-go get github.com/UlinoyaPed/BaiduTranslate@v1.1
+go get github.com/UlinoyaPed/BaiduTranslate@v1.0.2
 ```
 
 ## 使用
@@ -110,7 +110,7 @@ en
 错误码：54000，错误信息：PARAM_FROM_TO_OR_Q_EMPTY
 ```
 
-## 受支持的翻译语言
+## 受支持的翻译语言（部分）
 
  **(源语言语种不确定时可设置为 auto，目标语言语种不可设置为 auto)**
 

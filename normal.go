@@ -4,71 +4,88 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/tidwall/gjson"
 )
 
+// NormalResult 包含翻译结果和错误信息的结构体
 type NormalResult struct {
-	Dst string
-
-	errCode string
-	errMsg  string
+	Dst     string // 翻译结果
+	ErrCode string // 错误码
+	ErrMsg  string // 错误信息
 }
 
-func (BaiduInfo *BaiduInfo) NormalTr(Text string, From string, To string) NormalResult {
-
-	//合并字符串，计算sign
+// NormalTr 执行普通翻译的方法
+func (info *BaiduInfo) NormalTr(text, from, to string) NormalResult {
+	// 生成随机盐值
 	salt := Salt(10)
-	montage := BaiduInfo.AppID + Text + salt + BaiduInfo.SecretKey
-	ctx := md5.New()
-	ctx.Write([]byte(montage))
-	sign := hex.EncodeToString(ctx.Sum(nil))
+	// 构造待翻译的字符串，并计算签名
+	sign := generateSign(info.AppID, text, salt, info.SecretKey)
 
-	// 传入需要翻译的语句
-	urlstr := "http://fanyi-api.baidu.com/api/trans/vip/translate?q=" + url.QueryEscape(Text) + "&from=" + From + "&to=" + To + "&appid=" + BaiduInfo.AppID + "&salt=" + salt + "&sign=" + sign
+	// 构造请求URL
+	urlStr := "http://fanyi-api.baidu.com/api/trans/vip/translate?q=" + url.QueryEscape(text) + "&from=" + from + "&to=" + to + "&appid=" + info.AppID + "&salt=" + salt + "&sign=" + sign
 
-	// 发送GET请求
-	resp, err := http.Get(urlstr)
+	// POST请求
+	method := "POST"
+	// 5秒超时
+	timeout := time.Duration(5 * time.Second)
+	client := &http.Client{
+		Timeout: timeout,
+	}
+	req, err := http.NewRequest(method, urlStr, nil)
 	if err != nil {
-		log.Println("HTTP GET出现错误！")
+		fmt.Println(err)
+		// return
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	// 发送请求
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		// return
+	}
+	defer res.Body.Close()
 
-	bodyJson := string(body)
-	var res NormalResult
-	res.errCode = gjson.Get(bodyJson, "error_code").String()
-	res.errMsg = gjson.Get(bodyJson, "error_msg").String()
-	if res.errCode == "" {
-		trans := gjson.Get(bodyJson, "trans_result").Array()[0]
-		res.Dst = trans.Get("dst").String()
+	// 解析返回数据
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		// return
 	}
-	return res
+	//fmt.Println(string(body))
+
+	bodyJSON := string(body)
+	var resp NormalResult
+	resp.ErrCode = gjson.Get(bodyJSON, "error_code").String()
+	resp.ErrMsg = gjson.Get(bodyJSON, "error_msg").String()
+	if resp.ErrCode == "" {
+		trans := gjson.Get(bodyJSON, "trans_result").Array()[0]
+		resp.Dst = trans.Get("dst").String()
+	}
+	return resp
 }
 
-func (j NormalResult) Err() error {
-	if j.errCode != "" {
-		err := errors.New("通用翻译错误，错误码：" + j.errCode + "，错误信息：" + j.errMsg)
+// Err 返回翻译错误信息
+func (result NormalResult) Err() error {
+	if result.ErrCode != "" {
+		err := errors.New("通用翻译错误，错误码：" + result.ErrCode + "，错误信息：" + result.ErrMsg)
 		return err
 	} else {
 		return nil
 	}
 }
 
-/*
-// json解析
-	trans := gjson.Get(string(body), "trans_result").Array()[0]
-	result := trans.Get("dst").String()
-	errorCode := gjson.Get(string(body), "error_code").String()
-	errorMsg := gjson.Get(string(body), "error_msg").String()
-	if errorCode != "" {
-		err := errors.New("错误码：" + errorCode + "，错误信息：" + errorMsg)
-		return "", err
-	} else {
-		return result, nil
-	}
-*/
+// generateSign 根据给定的参数生成签名
+func generateSign(appID, text, salt, secretKey string) string {
+	// 合并字符串，计算sign
+	montage := appID + text + salt + secretKey
+	hash := md5.New()
+	hash.Write([]byte(montage))
+	sign := hex.EncodeToString(hash.Sum(nil))
+	return sign
+}
